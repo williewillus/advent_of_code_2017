@@ -1,5 +1,6 @@
+mod day1;
 mod util;
 
 fn main() {
-  println!("hi!")
+    day1::run();
 }
