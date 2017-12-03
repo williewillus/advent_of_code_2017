@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use util::Position;
+use util::Direction;
 
 const INPUT: u32 = 347991;
 
@@ -61,38 +63,6 @@ fn part_1() {
     }
 
     println!("part 1: {}", ring + off);
-}
-
-#[derive(Debug)]
-enum Direction {
-    UP,
-    DOWN,
-    LEFT,
-    RIGHT
-}
-
-impl Direction {
-    fn ccw(&self) -> Direction {
-        match self {
-            &Direction::UP => Direction::LEFT,
-            &Direction::LEFT => Direction::DOWN,
-            &Direction::DOWN => Direction::RIGHT,
-            &Direction::RIGHT => Direction::UP,
-        }
-    }
-}
-
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
-struct Position(i32, i32);
-impl Position {
-    fn offset(&self, dir: &Direction) -> Position {
-        match dir {
-            &Direction::UP => Position(self.0, self.1 + 1),
-            &Direction::DOWN => Position(self.0, self.1 - 1),
-            &Direction::LEFT => Position(self.0 - 1, self.1),
-            &Direction::RIGHT => Position(self.0 + 1, self.1),
-        }
-    }
 }
 
 fn part_2() {
