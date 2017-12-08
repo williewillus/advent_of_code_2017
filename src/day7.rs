@@ -5,84 +5,87 @@ use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
 
-#[derive(Hash, Eq, PartialEq, Debug, Clone)]
-struct Node {
-    name: String,
-    weight: i32,
-    children: Vec<String>,
-}
-
-fn get_weight(all: &HashMap<String, Node>, root: &str) -> i32 {
-    println!("looking for weight of {}", root);
-    let r = &all[root];
-    let mut weight = r.weight;
-    if !r.children.is_empty() {
-        let children_weights = r.children.iter().map(|c| get_weight(all, c)).collect::<Vec<_>>();
-        let first_weight = children_weights[0];
-        for (idx, wt) in children_weights.iter().enumerate() {
-            if *wt != first_weight {
-                let bad_child = &r.children[idx];
-                println!("{}'s child {} subweight {} differs from its siblings {}", r.name, bad_child, wt, first_weight);
-
-                let diff = first_weight - wt;
-                println!("{} was {} and should weigh {} instead", bad_child, all[bad_child].weight, all[bad_child].weight + diff);
-            }
-            weight += *wt;
-        }
-
-    }
-
-    weight
-}
-
-fn check_balance(all: &HashMap<String, Node>, root: &Node) -> bool {
-    false
-}
-
 pub fn run() {
     let f = File::open("d7_input.txt").unwrap();
     let re = Regex::new(r"(\w+) \((\d+)\)(.*)").unwrap();
 
-    let mut all = HashMap::new();
-    let mut parents = HashMap::new();
+    let mut all_children = HashSet::new();
+    let mut weights = HashMap::new();
+    let mut children = HashMap::new();
 
     for line in BufReader::new(f).lines().filter_map(|l| l.ok()) {
         for m in re.captures_iter(&line) {
             let name = &m[1];
             let weight = m[2].parse::<i32>().unwrap();
-            let children_spec = if m.len() >= 4 && m[3].len() >= 3 {
-                println!("match {}", &m[3]);
-                &m[3][4..] // take off space and arrow
+            let children_spec = if let Some(idx) = m[3].find("->") {
+                &m[3][idx+3..] // take off space and arrow
             } else {
                 ""
             };
 
-            let mut children = Vec::new();
-            for child in children_spec.split(", ") {
-                if !child.is_empty() {
-                    children.push(child.to_string());
-                    parents.insert(child.to_string(), name.to_string());
+            if !children_spec.is_empty() {
+                let mut v = Vec::new();
+
+                for child in children_spec.split(", ") {
+                    all_children.insert(child.to_string());
+                    v.push(child.to_string());
                 }
+
+                children.insert(name.to_string(), v);
             }
 
-            all.insert(name.to_string(), Node {
-                name: name.to_string(),
-                weight,
-                children
-            });
 
-            println!("{} {} {}", name, weight, children_spec);
+            weights.insert(name.to_string(), weight);
         }
     }
 
-    let mut root = Node { name: "".to_owned(), weight: 0, children: Vec::new() };
-    for (k, v) in &all {
-        if !parents.contains_key(k) {
-            root = v.clone();
-            println!("part 1: {:?}", root);
+    let mut root = "";
+    for node in weights.keys() {
+        if !all_children.contains(node) {
+            println!("{} has no parent", node);
+            root = node;
+            break;
         }
     }
 
-    // println!("{}", get_weight(&all, &root.name));
+    let mut prev = "".to_string();
+    let mut cur = root.to_string();
+    while let Some(unbal) = get_unbalanced_child(&cur, &children, &weights) {
+        prev = cur;
+        cur = unbal;
+        println!("prev {} cur {}", prev, cur);
+    }
 
+    // prev is unbalanced, its child cur differs
+    // cur's children all have the same weight
+    println!("final cur {}", cur);
+
+    println!("{}", subtree_weight(root, &children, &weights));
+    println!("{:?}", get_unbalanced_child("nnoaqvv", &children, &weights));
+}
+
+fn subtree_weight(root: &str, children: &HashMap<String, Vec<String>>, weights: &HashMap<String, i32>) -> i32 {
+    let mut ret = weights[root];
+    for child in children.get(root).unwrap_or(&Vec::new()) {
+        println!("{}", child);
+        ret += weights[child];
+    }
+    ret
+}
+
+fn get_unbalanced_child(root: &str, children: &HashMap<String, Vec<String>>, weights: &HashMap<String, i32>) -> Option<String> {
+    // weights -> how many times we've seen them
+    let mut seen_weights = HashMap::new();
+    for child in children.get(root).unwrap_or(&Vec::new()) {
+        *seen_weights.entry(subtree_weight(child, children, weights)).or_insert(0) += 1;
+    }
+
+    for (weight, freq) in seen_weights {
+        if freq == 1 {
+            let child = children[root].iter().find(|c| weight == subtree_weight(c, &children, &weights)).unwrap();
+            return Some(child.clone());
+        }
+    }
+
+    None
 }
