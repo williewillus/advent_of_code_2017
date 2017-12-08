@@ -6,7 +6,7 @@ use std::io::BufReader;
 
 pub fn run() {
     let f = File::open("d8_input.txt").unwrap();
-    let mut mem: HashMap<String, i32> = HashMap::new();
+    let mut mem = HashMap::new();
     let mut max = i32::min_value();
 
     for line in BufReader::new(f).lines().filter_map(|l| l.ok()) {
