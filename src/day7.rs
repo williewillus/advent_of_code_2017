@@ -69,7 +69,7 @@ pub fn run() {
 fn subtree_weight(root: &str, children: &HashMap<String, Vec<String>>, weights: &HashMap<String, i32>) -> i32 {
     let mut ret = weights[root];
     for child in &children[root] {
-        ret += weights[child];
+        ret += subtree_weight(child, children, weights);
     }
     ret
 }
@@ -84,8 +84,6 @@ fn get_unbalanced_child(root: &str, children: &HashMap<String, Vec<String>>, wei
         seen_weights.insert(subweight, old_freq + 1);
     }
 
-    // if there's a subtree weight we've only seen once at this level, it's the unbalanced child
-    // ASSUMPTION: there is only one entry with freq 1, all other weights are identical
     for (weight, freq) in &seen_weights {
         if *freq == 1 {
             let child = children[root].iter().find(|c| *weight == subtree_weight(c, &children, &weights)).unwrap();
