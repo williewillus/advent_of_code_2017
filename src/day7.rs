@@ -23,18 +23,16 @@ pub fn run() {
                 ""
             };
 
-            if !children_spec.is_empty() {
-                let mut v = Vec::new();
+            let mut v = Vec::new();
 
-                for child in children_spec.split(", ") {
+            for child in children_spec.split(", ") {
+                if !child.is_empty() {
                     all_children.insert(child.to_string());
                     v.push(child.to_string());
                 }
-
-                children.insert(name.to_string(), v);
             }
 
-
+            children.insert(name.to_string(), v);
             weights.insert(name.to_string(), weight);
         }
     }
@@ -42,12 +40,13 @@ pub fn run() {
     let mut root = "";
     for node in weights.keys() {
         if !all_children.contains(node) {
-            println!("{} has no parent", node);
+            println!("part 1: {} has no parent", node);
             root = node;
             break;
         }
     }
 
+    // Recurse down into the unbalanced child, until there is no longer a unbalanced child
     let mut prev = "".to_string();
     let mut cur = root.to_string();
     while let Some(unbal) = get_unbalanced_child(&cur, &children, &weights) {
@@ -56,18 +55,20 @@ pub fn run() {
         println!("prev {} cur {}", prev, cur);
     }
 
-    // prev is unbalanced, its child cur differs
-    // cur's children all have the same weight
-    println!("final cur {}", cur);
+    // find what cur's subweight should be by looking at one of its siblings
+    let cur_weight = subtree_weight(&cur, &children, &weights);
+    let sibling: &str = &children[&prev].iter().find(|c| **c != cur).unwrap();
+    let sib_weight = subtree_weight(sibling, &children, &weights);
 
-    println!("{}", subtree_weight(root, &children, &weights));
-    println!("{:?}", get_unbalanced_child("nnoaqvv", &children, &weights));
+
+    let diff = sib_weight - cur_weight;
+    println!("part 2: {}'s subtree weight is {}, should be {} (diff {})", cur, cur_weight, sib_weight, diff);
+    println!("part 2: {}'s own weight should be changed to {}", cur, weights[&cur] + diff);
 }
 
 fn subtree_weight(root: &str, children: &HashMap<String, Vec<String>>, weights: &HashMap<String, i32>) -> i32 {
     let mut ret = weights[root];
-    for child in children.get(root).unwrap_or(&Vec::new()) {
-        println!("{}", child);
+    for child in &children[root] {
         ret += weights[child];
     }
     ret
@@ -76,13 +77,19 @@ fn subtree_weight(root: &str, children: &HashMap<String, Vec<String>>, weights: 
 fn get_unbalanced_child(root: &str, children: &HashMap<String, Vec<String>>, weights: &HashMap<String, i32>) -> Option<String> {
     // weights -> how many times we've seen them
     let mut seen_weights = HashMap::new();
-    for child in children.get(root).unwrap_or(&Vec::new()) {
-        *seen_weights.entry(subtree_weight(child, children, weights)).or_insert(0) += 1;
+    for child in &children[root] {
+        let subweight = subtree_weight(child, children, weights);
+        println!("{} subweight {}", child, subweight);
+        let old_freq = *seen_weights.get(&subweight).unwrap_or(&0);
+        seen_weights.insert(subweight, old_freq + 1);
     }
 
-    for (weight, freq) in seen_weights {
-        if freq == 1 {
-            let child = children[root].iter().find(|c| weight == subtree_weight(c, &children, &weights)).unwrap();
+    // if there's a subtree weight we've only seen once at this level, it's the unbalanced child
+    // ASSUMPTION: there is only one entry with freq 1, all other weights are identical
+    for (weight, freq) in &seen_weights {
+        if *freq == 1 {
+            let child = children[root].iter().find(|c| *weight == subtree_weight(c, &children, &weights)).unwrap();
+            println!("{:?}", seen_weights);
             return Some(child.clone());
         }
     }
