@@ -36,7 +36,7 @@ pub fn run() {
     println!("part 1: {}", p1_data[0] * p1_data[1]);
 
     let mut p2_lens = util::read_all("d10_input.txt").unwrap().bytes().map(|b| b as usize).collect::<Vec<_>>();
-    p2_lens.extend([17, 31, 73, 47, 23].iter());
+    p2_lens.extend_from_slice(&[17, 31, 73, 47, 23]);
 
     let mut p2_data = (0..256).collect::<Vec<_>>();
     let mut pos = 0;
