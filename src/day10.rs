@@ -1,15 +1,15 @@
 use util;
 
-fn circular_get(data: &[i32], idx: usize) -> i32 {
+fn circular_get(data: &[u32], idx: usize) -> u32 {
     data[idx % data.len()]
 }
 
-fn circular_set(data: &mut [i32], idx: usize, val: i32) {
+fn circular_set(data: &mut [u32], idx: usize, val: u32) {
     let data_len = data.len();
     data[idx % data_len] = val;
 }
 
-fn reverse(data: &mut [i32], start: usize, len: usize) {
+fn reverse(data: &mut [u32], start: usize, len: usize) {
     for offset in 0..len/2 {
         let start_idx = start + offset;
         let end_idx = start + len - offset - 1;
@@ -22,7 +22,7 @@ fn reverse(data: &mut [i32], start: usize, len: usize) {
     }
 }
 
-fn hash_iter(data: &mut [i32], lens: &[usize], pos: &mut usize, skip_size: &mut usize) {
+fn hash_iter(data: &mut [u32], lens: &[usize], pos: &mut usize, skip_size: &mut usize) {
     for &len in lens {
         reverse(data, *pos, len);
         *pos = (*pos + len + *skip_size) % data.len();
