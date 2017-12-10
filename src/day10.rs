@@ -1,15 +1,24 @@
 use util;
 
-// todo do it in place / without allocating
-fn reverse(data: &mut [i32], start: usize, len: usize) {
-    let data_len = data.len();
-    let mut tmp = vec![0; len];
-    for offset in 0..len {
-        tmp[offset] = data[(start + offset) % data_len];
-    }
+fn circular_get(data: &[i32], idx: usize) -> i32 {
+    data[idx % data.len()]
+}
 
-    for (offset, val) in tmp.iter().rev().enumerate() {
-        data[(start + offset) % data_len] = *val;
+fn circular_set(data: &mut [i32], idx: usize, val: i32) {
+    let data_len = data.len();
+    data[idx % data_len] = val;
+}
+
+fn reverse(data: &mut [i32], start: usize, len: usize) {
+    for offset in 0..len/2 {
+        let start_idx = start + offset;
+        let end_idx = start + len - offset - 1;
+
+        let start = circular_get(data, start_idx);
+        let end = circular_get(data, end_idx);
+
+        circular_set(data, start_idx, end);
+        circular_set(data, end_idx, start);
     }
 }
 
