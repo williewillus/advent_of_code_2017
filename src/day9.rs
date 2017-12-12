@@ -1,4 +1,3 @@
-use std::vec::Vec;
 use std::iter::Peekable;
 use util;
 

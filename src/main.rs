@@ -9,6 +9,7 @@ mod day8;
 mod day9;
 mod day10;
 mod day11;
+mod day12;
 mod util;
 
 extern crate regex;
@@ -32,6 +33,7 @@ fn main() {
         "9" => day9::run(),
         "10" => day10::run(),
         "11" => day11::run(),
+        "12" => day12::run(),
         _ => panic!("no such day {}", args[1])
     }
 }
