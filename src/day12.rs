@@ -1,15 +1,12 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::collections::VecDeque;
-use std::collections::BTreeSet;
 use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
 
-// Use BTreeSet since standard HashSet does not itself implement Hash,
-// so we can't use a HashSet of HashSet in count_connected_components
-fn bfs_from(neighbors: &HashMap<u32, Vec<u32>>, root: u32) -> BTreeSet<u32> {
-    let mut seen = BTreeSet::new();
+fn bfs_from(neighbors: &HashMap<u32, Vec<u32>>, root: u32) -> HashSet<u32> {
+    let mut seen = HashSet::new();
     let mut q = VecDeque::new();
     q.push_back(root);
 
@@ -28,11 +25,24 @@ fn bfs_from(neighbors: &HashMap<u32, Vec<u32>>, root: u32) -> BTreeSet<u32> {
 }
 
 fn count_connected_components(neighbors: &HashMap<u32, Vec<u32>>) -> usize {
-    let mut ccs = HashSet::new();
-    for root in neighbors.keys() {
-        ccs.insert(bfs_from(neighbors, *root));
+    let mut all_nodes = neighbors.keys().cloned().collect::<HashSet<_>>();
+    let mut ccs = 0;
+
+    while !all_nodes.is_empty() {
+        let next_root = *all_nodes.iter().next().unwrap();
+
+        let traversed = bfs_from(neighbors, next_root);
+        if traversed.len() > 0 {
+            ccs += 1;
+        }
+
+        all_nodes.remove(&next_root);
+        for n in traversed {
+            all_nodes.remove(&n);
+        }
     }
-    ccs.len()
+
+    ccs
 }
 
 pub fn run() {
@@ -42,6 +52,7 @@ pub fn run() {
     for line in BufReader::new(f).lines().filter_map(|l| l.ok()) {
         let splits = line.split(" <-> ").collect::<Vec<_>>();
         let from = splits[0].parse::<u32>().unwrap();
+
         let vec = neighbors.entry(from).or_insert(Vec::new());
         for to in splits[1].split(", ") {
             vec.push(to.parse::<u32>().unwrap());
