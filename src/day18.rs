@@ -46,15 +46,15 @@ fn parse_insn(line: &str, re: &Regex) -> Insn {
     }
 }
 
-struct State {
+struct State<'a> {
     regs: HashMap<char, i64>,
     pc: i64,
-    insns: Vec<Insn>,
+    insns: &'a Vec<Insn>,
     send_count: u32,
     blocked: bool,
 }
 
-impl State {
+impl<'a> State<'a> {
     fn get_val(&self, opnd: Operand) -> i64 {
         match opnd {
             Operand::Reg(r) => *self.regs.get(&r).unwrap_or(&0),
@@ -66,19 +66,21 @@ impl State {
         self.pc < 0 || (self.pc as usize) >= self.insns.len()
     }
 
-    fn step(&mut self, snd: &mut VecDeque<i64>, rcv: &mut VecDeque<i64>) {
-        if !self.terminated() {
-            self.simulate(snd, rcv);
-        }
+    // return true if we sent this iteration
+    fn step(&mut self, snd: &mut VecDeque<i64>, rcv: &mut VecDeque<i64>) -> bool {
+        !self.terminated() && self.simulate(snd, rcv)
     }
 
-    fn simulate(&mut self, snd: &mut VecDeque<i64>, rcv: &mut VecDeque<i64>) {
+    fn simulate(&mut self, snd: &mut VecDeque<i64>, rcv: &mut VecDeque<i64>) -> bool {
         let insn = self.insns[self.pc as usize];
+
+        self.pc += 1; // pre-inc pc, fix it later if we actually shouldn't have done this
 
         match insn {
             Insn::Snd(r) => {
                 self.send_count += 1;
                 snd.push_back(*self.regs.get(&r).unwrap_or(&0));
+                return true;
             },
             Insn::Set(r, o) => {
                 let v = self.get_val(o);
@@ -96,7 +98,7 @@ impl State {
             Insn::Rcv(ch) => {
                 if rcv.is_empty() {
                     self.blocked = true;
-                    return; // don't increment pc so this insn will be re-run next iteration
+                    self.pc -= 1; // don't increment pc so this insn will be re-run next iteration
                 } else {
                     self.blocked = false;
                     self.regs.insert(ch, rcv.pop_front().unwrap());
@@ -105,17 +107,13 @@ impl State {
             Insn::Jgz(test, o) => {
                 let v = self.get_val(test);
                 if v > 0 {
+                    self.pc -= 1; // undo earlier inc
                     self.pc += self.get_val(o);
-                } else {
-                    self.pc += 1;
                 }
             }
         };
 
-        match insn {
-            Insn::Jgz(_, _) => (),
-            _ => self.pc += 1,
-        }
+        false
     }
 }
 
@@ -128,22 +126,19 @@ pub fn run() {
     let mut prog_0 = State {
         regs: HashMap::new(),
         pc: 0,
-        insns: insns.clone(),
+        insns: &insns,
         send_count: 0,
         blocked: false,
     };
 
     let mut prog_1 = State {
-        regs: {
-            let mut r = HashMap::new();
-            r.insert('p', 1);
-            r
-        },
+        regs: HashMap::new(),
         pc: 0,
-        insns: insns.clone(),
+        insns: &insns,
         send_count: 0,
         blocked: false,
     };
+    prog_1.regs.insert('p', 1);
 
     let mut p0_rcv_queue = VecDeque::new();
     let mut p1_rcv_queue = VecDeque::new();
