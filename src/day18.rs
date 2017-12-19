@@ -50,11 +50,27 @@ struct State<'a> {
     regs: HashMap<char, i64>,
     pc: i64,
     insns: &'a Vec<Insn>,
+
+    // part 1
+    last_played: i64,
+
+    // part 2
     send_count: u32,
     blocked: bool,
 }
 
 impl<'a> State<'a> {
+    fn new(insns: &Vec<Insn>) -> State {
+        State {
+            regs: HashMap::new(),
+            pc: 0,
+            insns: insns,
+            last_played: 0,
+            send_count: 0,
+            blocked: false,
+        }
+    }
+
     fn get_val(&self, opnd: Operand) -> i64 {
         match opnd {
             Operand::Reg(r) => *self.regs.get(&r).unwrap_or(&0),
@@ -68,19 +84,26 @@ impl<'a> State<'a> {
 
     // return true if we sent this iteration
     fn step(&mut self, snd: &mut VecDeque<i64>, rcv: &mut VecDeque<i64>) -> bool {
-        !self.terminated() && self.simulate(snd, rcv)
+        !self.terminated() && self.simulate(snd, rcv, false)
     }
 
-    fn simulate(&mut self, snd: &mut VecDeque<i64>, rcv: &mut VecDeque<i64>) -> bool {
+    // if part 1, return true if we recovered something and should stop
+    // if part 2, return true if we sent something
+    // todo clean up? I don't want two copies of the interpreter though
+    fn simulate(&mut self, snd: &mut VecDeque<i64>, rcv: &mut VecDeque<i64>, part_1: bool) -> bool {
         let insn = self.insns[self.pc as usize];
 
         self.pc += 1; // pre-inc pc, fix it later if we actually shouldn't have done this
 
         match insn {
             Insn::Snd(r) => {
-                self.send_count += 1;
-                snd.push_back(*self.regs.get(&r).unwrap_or(&0));
-                return true;
+                if part_1 {
+                    self.last_played = *self.regs.get(&r).unwrap_or(&0)
+                } else {
+                    self.send_count += 1;
+                    snd.push_back(*self.regs.get(&r).unwrap_or(&0));
+                    return true;
+                }
             },
             Insn::Set(r, o) => {
                 let v = self.get_val(o);
@@ -96,12 +119,17 @@ impl<'a> State<'a> {
                 *self.regs.entry(r).or_insert(0) %= self.get_val(o);
             },
             Insn::Rcv(ch) => {
-                if rcv.is_empty() {
-                    self.blocked = true;
-                    self.pc -= 1; // don't increment pc so this insn will be re-run next iteration
+                if part_1 && *self.regs.get(&ch).unwrap_or(&0) > 0 {
+                    println!("part 1: recovered {}", self.last_played);
+                    return true;
                 } else {
-                    self.blocked = false;
-                    self.regs.insert(ch, rcv.pop_front().unwrap());
+                    if rcv.is_empty() {
+                        self.blocked = true;
+                        self.pc -= 1; // don't increment pc so this insn will be re-run next iteration
+                    } else {
+                        self.blocked = false;
+                        self.regs.insert(ch, rcv.pop_front().unwrap());
+                    }
                 }
             },
             Insn::Jgz(test, o) => {
@@ -117,63 +145,54 @@ impl<'a> State<'a> {
     }
 }
 
-pub fn run() {
-    let re = Regex::new(r"(snd|set|add|mul|mod|rcv|jgz) ([a-z]|-?\d+)(?: ([a-z]|-?\d+))?").unwrap();
-    let insns = BufReader::new(File::open("d18_input.txt").unwrap()).lines().filter_map(|l| l.ok())
-        .map(|l| parse_insn(&l, &re))
-        .collect::<Vec<_>>();
+fn part_1(mut state: State) {
+    let mut dummy_1 = VecDeque::new();
+    let mut dummy_2 = VecDeque::new();
 
-    let mut prog_0 = State {
-        regs: HashMap::new(),
-        pc: 0,
-        insns: &insns,
-        send_count: 0,
-        blocked: false,
-    };
+    while !state.terminated() {
+        if state.simulate(&mut dummy_1, &mut dummy_2, true) {
+            break;
+        }
+    }
+}
 
-    let mut prog_1 = State {
-        regs: HashMap::new(),
-        pc: 0,
-        insns: &insns,
-        send_count: 0,
-        blocked: false,
-    };
+fn part_2(insns: &Vec<Insn>) {
+    let mut prog_0 = State::new(&insns);
+    let mut prog_1 = State::new(&insns);
     prog_1.regs.insert('p', 1);
 
     let mut p0_rcv_queue = VecDeque::new();
     let mut p1_rcv_queue = VecDeque::new();
 
-    loop {
+    while !(prog_0.blocked && prog_1.blocked)
+        && !(prog_0.terminated() && prog_1.terminated()) {
         // run p0 until it can't
         while !prog_0.blocked && !prog_0.terminated() {
-            let old_snd = prog_0.send_count;
-
-            prog_0.step(&mut p1_rcv_queue, &mut p0_rcv_queue);
-
-            // p0 sent so unblock p1
-            if prog_0.send_count != old_snd {
+            if prog_0.step(&mut p1_rcv_queue, &mut p0_rcv_queue) {
+                // p0 sent so unblock p1
                 prog_1.blocked = false;
             }
         }
 
         // run p1 until it can't
         while !prog_1.blocked && !prog_1.terminated() {
-            let old_snd = prog_1.send_count;
-
-            prog_1.step(&mut p0_rcv_queue, &mut p1_rcv_queue);
-
-            // p1 sent so unblock p0
-            if prog_1.send_count != old_snd {
+            if prog_1.step(&mut p0_rcv_queue, &mut p1_rcv_queue) {
+                // p1 sent so unblock p0
                 prog_0.blocked = false;
             }
         }
-
-        if (prog_0.blocked && prog_1.blocked)
-            || (prog_0.terminated() && prog_1.terminated()) {
-            break;
-        }
-    } // keep running them cooperatively until they're both done or blocked
+    }
 
     println!("part 2: {}", prog_1.send_count);
+}
+
+pub fn run() {
+    let re = Regex::new(r"(snd|set|add|mul|mod|rcv|jgz) ([a-z]|-?\d+)(?: ([a-z]|-?\d+))?").unwrap();
+    let insns = BufReader::new(File::open("d18_input.txt").unwrap()).lines().filter_map(|l| l.ok())
+        .map(|l| parse_insn(&l, &re))
+        .collect::<Vec<_>>();
+
+    part_1(State::new(&insns));
+    part_2(&insns);
 
 }
