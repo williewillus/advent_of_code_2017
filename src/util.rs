@@ -17,7 +17,7 @@ pub fn read_all(path: &str) -> Option<String> {
     return None;
 }
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub enum Direction {
     UP,
     DOWN,
@@ -32,6 +32,15 @@ impl Direction {
             &Direction::LEFT => Direction::DOWN,
             &Direction::DOWN => Direction::RIGHT,
             &Direction::RIGHT => Direction::UP,
+        }
+    }
+
+    pub fn opposite(&self) -> Direction {
+        match self {
+            &Direction::UP => Direction::DOWN,
+            &Direction::DOWN => Direction::UP,
+            &Direction::LEFT => Direction::RIGHT,
+            &Direction::RIGHT => Direction::LEFT,
         }
     }
 }
