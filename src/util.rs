@@ -26,6 +26,15 @@ pub enum Direction {
 }
 
 impl Direction {
+    pub fn cw(&self) -> Direction {
+        match self {
+            &Direction::UP => Direction::RIGHT,
+            &Direction::LEFT => Direction::UP,
+            &Direction::DOWN => Direction::LEFT,
+            &Direction::RIGHT => Direction::DOWN,
+        }
+    }
+
     pub fn ccw(&self) -> Direction {
         match self {
             &Direction::UP => Direction::LEFT,
