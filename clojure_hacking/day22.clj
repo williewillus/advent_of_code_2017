@@ -11,11 +11,9 @@
             (into {})))
 
 (def init-state
-  (loop [y (dec height)
-         state {}]
-        (if (neg? y)
-          state
-          (recur (dec y) (merge state (parse-line y))))))
+  (reduce (fn [state y] (merge state (parse-line y)))
+          {}
+          (reverse (range height))))
 
 (def opposite {:down :up :up :down :left :right :right :left})
 (def ccw {:down :right :right :up :up :left :left :down})
