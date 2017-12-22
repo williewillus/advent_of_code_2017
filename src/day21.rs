@@ -39,10 +39,7 @@ fn to_rules(line: &str) -> Vec<(Matrix<bool>, Matrix<bool>)> { // todo can I use
 }
 
 fn enhance(old: &Matrix<bool>, rules: &HashMap<Matrix<bool>, Matrix<bool>>) -> Matrix<bool> {
-    println!("OLD {:?}", old);
-    println!("OLD SIZE {}", old.rows);
     if old.rows % 2 == 0 {
-        println!("chunking by 2's");
         let old_chunks = old.rows / 2;
         let new_grid_size = old_chunks * 3;
         let mut new_grid = Matrix::new_square(new_grid_size, false);
@@ -57,7 +54,6 @@ fn enhance(old: &Matrix<bool>, rules: &HashMap<Matrix<bool>, Matrix<bool>>) -> M
 
         new_grid
     } else {
-        println!("chunking by 3's");
         assert_eq!(0, old.rows % 3);
 
         let old_chunks = old.rows / 3;
@@ -68,7 +64,7 @@ fn enhance(old: &Matrix<bool>, rules: &HashMap<Matrix<bool>, Matrix<bool>>) -> M
             for chunk_x in 0..old_chunks {
                 let old_chunk = old.slice(chunk_x*3..chunk_x*3 + 3, chunk_y*3..chunk_y*3 + 3);
                 let res = &rules[&old_chunk];
-                new_grid.set_slice(&(chunk_x*3, chunk_y*3), &res);
+                new_grid.set_slice(&(chunk_x*4, chunk_y*4), &res);
             }
         }
 
@@ -83,15 +79,8 @@ pub fn run() {
 
     let init = Matrix::square_from_vec(vec![false, true, false, false, false, true, true, true, true]);
     // todo use itertools.iterate() when this actually works
-    let one = enhance(&init, &rules);
-    let two = enhance(&one, &rules);
-    let three = enhance(&two, &rules);
-    let four = enhance(&three, &rules);
-    let five = enhance(&four, &rules);
-    println!("{}", init.as_ref().iter().filter(|b| **b).count());
-    println!("{}", one.as_ref().iter().filter(|b| **b).count());
-    println!("{}", two.as_ref().iter().filter(|b| **b).count());
-    println!("{}", three.as_ref().iter().filter(|b| **b).count());
-    println!("{}", four.as_ref().iter().filter(|b| **b).count());
-    println!("part 1: {}", five.as_ref().iter().filter(|b| **b).count());
+    let mut iter = iterate(init, |s| enhance(s, &rules));
+    println!("part 1: {}", iter.nth(5).unwrap().as_ref().iter().filter(|b| **b).count());
+    // another 12 to get the 18th iteration
+    println!("part 2: {}", iter.nth(12).unwrap().as_ref().iter().filter(|b| **b).count());
 }
