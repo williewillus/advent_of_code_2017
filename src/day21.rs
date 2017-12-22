@@ -6,12 +6,6 @@ use pathfinding::Matrix;
 use itertools::Itertools;
 use itertools::iterate;
 
-#[derive(Clone, Debug)]
-struct Rule {
-    pattern: Matrix<bool>,
-    result: Matrix<bool>,
-}
-
 fn to_matrix(side: &str) -> Matrix<bool> {
     Matrix::square_from_vec(
         side.bytes()
@@ -45,8 +39,10 @@ fn to_rules(line: &str) -> Vec<(Matrix<bool>, Matrix<bool>)> { // todo can I use
 }
 
 fn enhance(old: &Matrix<bool>, rules: &HashMap<Matrix<bool>, Matrix<bool>>) -> Matrix<bool> {
+    println!("OLD {:?}", old);
+    println!("OLD SIZE {}", old.rows);
     if old.rows % 2 == 0 {
-        // number of chunks on a side
+        println!("chunking by 2's");
         let old_chunks = old.rows / 2;
         let new_grid_size = old_chunks * 3;
         let mut new_grid = Matrix::new_square(new_grid_size, false);
@@ -61,6 +57,7 @@ fn enhance(old: &Matrix<bool>, rules: &HashMap<Matrix<bool>, Matrix<bool>>) -> M
 
         new_grid
     } else {
+        println!("chunking by 3's");
         assert_eq!(0, old.rows % 3);
 
         let old_chunks = old.rows / 3;
@@ -85,10 +82,16 @@ pub fn run() {
         .collect::<HashMap<_, _>>();
 
     let init = Matrix::square_from_vec(vec![false, true, false, false, false, true, true, true, true]);
+    // todo use itertools.iterate() when this actually works
     let one = enhance(&init, &rules);
     let two = enhance(&one, &rules);
     let three = enhance(&two, &rules);
     let four = enhance(&three, &rules);
     let five = enhance(&four, &rules);
+    println!("{}", init.as_ref().iter().filter(|b| **b).count());
+    println!("{}", one.as_ref().iter().filter(|b| **b).count());
+    println!("{}", two.as_ref().iter().filter(|b| **b).count());
+    println!("{}", three.as_ref().iter().filter(|b| **b).count());
+    println!("{}", four.as_ref().iter().filter(|b| **b).count());
     println!("part 1: {}", five.as_ref().iter().filter(|b| **b).count());
 }
