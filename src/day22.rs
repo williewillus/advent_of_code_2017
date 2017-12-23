@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
-use itertools::Itertools;
 use util::Direction;
 use util::Position;
 

@@ -20,16 +20,6 @@ fn find_ring(val: u32) -> u32 {
     return ring;
 }
 
-fn is_corner(val: u32) -> bool {
-    let ring = find_ring(val);
-    if ring == 0 {
-        return true;
-    }
-    let prev_ring_max = ring_to_ringmax(ring - 1);
-    let m = 2u32.pow(ring);
-    (val - prev_ring_max) % m == 0
-}
-
 fn part_1() {
     let ring = find_ring(INPUT);
     let prev_ringmax = ring_to_ringmax(ring - 1);

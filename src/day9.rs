@@ -22,7 +22,7 @@ fn parse_garbage<I>(iter: &mut Peekable<I>, ctx: &mut Ctx) where I: Iterator<Ite
                     '>' => if !cancellation {
                         break;
                     },
-                    other => if !cancellation {
+                    _ => if !cancellation {
                         ctx.garbage_count += 1;
                     },
                 }
@@ -54,7 +54,7 @@ fn parse_group<I>(iter: &mut Peekable<I>, ctx: &mut Ctx) where I: Iterator<Item 
             '<' => if !cancellation {
                 parse_garbage(iter, ctx);
             }
-            other => {
+            _ => {
                 iter.next().unwrap(); // consume
                 ()
             },
