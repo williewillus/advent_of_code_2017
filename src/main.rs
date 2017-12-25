@@ -22,9 +22,9 @@ mod day21;
 mod day22;
 mod day23;
 mod day24;
+mod day25;
 mod util;
 
-#[macro_use]
 extern crate itertools;
 extern crate pathfinding;
 extern crate regex;
@@ -61,6 +61,7 @@ fn main() {
         "22" => day22::run(),
         "23" => day23::run(),
         "24" => day24::run(),
+        "25" => day25::run(),
         _ => panic!("no such day {}", args[1])
     }
 }
